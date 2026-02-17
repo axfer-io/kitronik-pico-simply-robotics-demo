@@ -1,106 +1,141 @@
-# Pico C/C++ Firmware Template
+# Pico C/C++ Firmware Template — Kitronik Simply Robotics (Direct PWM + PIO)
 
 Embedded systems · Control · Debugging ⚙️  
 I/O 🔌, firmware 🔧, and systems that actually run 🚀
 
----
+------------------------------------------------------------------------
 
 ## Overview
 
-This repository provides a **clean, reproducible template** for embedded firmware projects using the Raspberry Pi Pico SDK.
+This example demonstrates control of:
 
-It is designed for:
-- low-level C/C++ development
-- deterministic builds
-- on-target debugging
-- minimal magic
+- Servos  
+- DC motors  
+- Stepper motors  
 
----
+using the **Kitronik Simply Robotics board**, driven directly by the RP2040 using:
 
-## Requirements
+- Hardware PWM (motors)
+- PIO state machines (servos)
+- GPIO sequencing (steppers)
 
-- Raspberry Pi Pico SDK (`PICO_SDK_PATH` exported)
-- CMake ≥ 3.13
-- Ninja
-- ARM GCC toolchain
-- `pico-tools` installed at `~/pico/tools` (for flashing & OpenOCD)
+No external PWM controller is required.
 
+The RP2040 generates all control signals internally.
 
-## Supported Targets
+------------------------------------------------------------------------
 
-- RP2040 (Pico / Pico W)
-- RP2350 (Pico 2 / Pico 2 W)
+## Example Code
 
----
+```cpp
+#include "pico/stdlib.h"
+#include "kitronik_simply_robotics.hpp"
 
-## Features
+int main() {
+    stdio_init_all();
+    sleep_ms(200);
 
-- Out-of-tree builds
-- CMake presets (Debug / Release)
-- OpenOCD flash target
-- SWD debugging ready
-- Modular source / lib structure
+    KitronikSimplyRobotics board(true);
 
----
+    while (true) {
 
-## Project Structure
+        // Servo control
+        board.servos[0].goToPosition(0);
+        sleep_ms(500);
 
-```text
-.
-├── src/            # Application code
-├── lib/            # Drivers / utilities
-├── build/          # Generated build directories
-├── CMakeLists.txt
-├── CMakePresets.json
-└── README.md
+        board.servos[0].goToPosition(180);
+        sleep_ms(500);
+
+        // Motor control
+        board.motors[0].on('f', 60);
+        sleep_ms(500);
+
+        board.motors[0].off();
+        sleep_ms(500);
+
+        // Stepper control
+        board.steppers[0].step('f');
+        sleep_ms(500);
+    }
+}
 ```
 
----
+------------------------------------------------------------------------
 
-## Build Flow
+## Hardware Architecture
 
-Presets define the board and build type.  
-You configure once, then live in `cmake --build`.
+Control method:
 
-### First-time configure
+| Device   | Method                |
+|---------|-----------------------|
+| Servos  | RP2040 PIO           |
+| Motors  | RP2040 Hardware PWM  |
+| Steppers| GPIO + PWM sequencing|
+| Comm    | Direct GPIO (no I2C) |
+
+------------------------------------------------------------------------
+
+## Pin Mapping (Kitronik Simply Robotics Board)
+
+### Motors
+
+| Motor | Forward | Reverse |
+|------|---------|---------|
+| M1   | GP2     | GP5     |
+| M2   | GP4     | GP3     |
+| M3   | GP6     | GP9     |
+| M4   | GP8     | GP7     |
+
+### Servos
+
+| Servo | GPIO |
+|------|------|
+| S0   | GP15 |
+| S1   | GP14 |
+| S2   | GP13 |
+| S3   | GP12 |
+| S4   | GP19 |
+| S5   | GP18 |
+| S6   | GP17 |
+| S7   | GP16 |
+
+------------------------------------------------------------------------
+
+## Build and Flash
+
 ```bash
-cmake --preset pico2w-debug
+cmake --preset pico2-release
+cmake --build --preset build-pico2-release
+picotool load build/pico2-release/app.uf2 -f
+picotool reboot
 ```
 
-### Incremental build
-```bash
-cmake --build --preset build-pico2w-debug
-```
+------------------------------------------------------------------------
 
-### Build + flash
-```bash
-cmake --build --preset flash-pico2w-debug
-```
+## Control Architecture Comparison
 
----
+| Feature | Simply Robotics | PCA9685 Robotics |
+|--------|-----------------|------------------|
+| PWM generation | RP2040 internal | External PCA9685 |
+| Communication | None | I2C |
+| Latency | Lowest | Low |
+| CPU load | Moderate | Minimal |
+| Hardware complexity | Minimal | Higher |
 
-## Debugging
+------------------------------------------------------------------------
 
-1. Start OpenOCD
-2. Attach GDB / DAP
-3. Set breakpoints and inspect registers / memory
+## When to use this version
 
-OpenOCD is expected to run on port `:3333` (SWD).
+Use this firmware when:
 
-Designed to work cleanly with:
-- gdb-multiarch
-- Neovim + nvim-dap
+- Hardware is the Kitronik Simply Robotics board  
+- No PCA9685 is present  
+- Direct, low-latency control is required  
+- Minimal hardware complexity is desired  
 
----
+Use the I2C version when external PWM expansion is required.
 
-## Design Principles
-
-- Explicit control over convenience
-- Debug-first mindset
-- Hardware-driven design
-- Minimal abstractions
-
----
+------------------------------------------------------------------------
 
 ## Author
 
@@ -108,7 +143,7 @@ Designed to work cleanly with:
 Embedded systems · Control · Debugging  
 Firmware and systems that actually run.
 
----
+------------------------------------------------------------------------
 
 ## License
 

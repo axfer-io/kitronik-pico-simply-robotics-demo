@@ -8,16 +8,23 @@ int main() {
 
     KitronikSimplyRobotics board(true);
 
+    // Ajuste SOLO para el servo problemático (servo 3)
+    board.servos[0].setPulseRangeUs(500, 2200);  // o el max seguro medido
+    // opcional: si quieres un “soft limit” adicional:
+    // board.servos[3].setAngleRangeDeg(0, 155);
+
     // Servo 0 a 0..180 suavecito
     while (true) {
         board.servos[0].goToPosition(0);
-        sleep_ms(500);
+        board.servos[1].goToPosition(0);
+        sleep_ms(1000);
         board.servos[0].goToPosition(180);
-        sleep_ms(500);
+        board.servos[1].goToPosition(180);
+        sleep_ms(1000);
 
         // Motor 0 forward 60%
         board.motors[0].on('f', 60);
-        sleep_ms(500);
+        sleep_ms(1000);
         board.motors[0].off();
 
         // Stepper 0 un paso forward

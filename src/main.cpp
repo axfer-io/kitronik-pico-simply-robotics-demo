@@ -21,7 +21,7 @@ int main() {
         board.motors[0].off();
 
         // Stepper 0 un paso forward
-        board.steppers[0].step('f');
+        board.steppers[1].step('f');
         sleep_ms(50);
     }
 }
